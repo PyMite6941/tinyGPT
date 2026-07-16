@@ -1,3 +1,4 @@
+import os
 import sys
 import torch
 import torch.nn as nn
@@ -11,7 +12,7 @@ n_embed = 96
 n_head = 4
 n_layer = 4
 learning_rate = 3e-4
-max_iters = 3000
+max_iters = 30000
 eval_interval = 300
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.manual_seed(1337)
@@ -150,7 +151,7 @@ def main():
     val_data = data[n:]
     model = TinyGPT(vocab_size).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-    best_val_loss = float("inf")
+    best_val_loss = float("inf") # if not os.path.exists("tinygpt.pth") else [find out how to add pth data]
     for step in range(max_iters):
         xb, yb = get_batch(train_data)
         logits, loss = model(xb, yb)
@@ -158,8 +159,8 @@ def main():
         loss.backward()
         optimizer.step()
         if step % eval_interval == 0:
-            print(f"step {step}: training loss {loss.item():.4f}")
             val_loss = estimate_val_loss(model, val_data)
+            print(f"step {step} | training loss {loss.item():.4f} | val loss {val_loss.item():.4f}")
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 torch.save({

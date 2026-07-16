@@ -28,6 +28,8 @@ class ExtractData():
         elif self.file_extension in ['txt', 'md']:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 return f.read()
+        elif self.file_extension == 'csv':
+            return self._extract_data_from_csv(self.file_path)
         elif self.file_extension == 'html':
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 soup = BeautifulSoup(f, 'html.parser')
