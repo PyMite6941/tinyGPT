@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 import os
 from pypdf import PdfReader
 
@@ -20,6 +21,10 @@ class ExtractData():
         elif self.file_extension in ['txt', 'md']:
             with open(self.full_path, 'r', encoding='utf-8') as f:
                 return f.read()
+        elif self.file_extension == 'html':
+            with open(self.full_path, 'r', encoding='utf-8') as f:
+                soup = BeautifulSoup(f, 'html.parser')
+                return soup.get_text()
         else:
             raise ValueError(f"Unsupported file type: {self.file_extension}")
         
