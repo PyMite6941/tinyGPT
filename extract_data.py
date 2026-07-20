@@ -1,3 +1,4 @@
+import csv
 from bs4 import BeautifulSoup
 import os
 from pypdf import PdfReader
@@ -42,4 +43,12 @@ class ExtractData():
         text = ""
         for page in reader.pages:
             text += page.extract_text() + "\n"
+        return text
+
+    def _extract_data_from_csv(self, path) -> str:
+        text = ""
+        with open(path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                text += " ".join(row) + "\n"
         return text

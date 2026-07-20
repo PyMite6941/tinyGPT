@@ -17,6 +17,8 @@ eval_interval = 300
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.manual_seed(1337)
 
+CACHE_DIR = "cache"
+
 def build_tokenizer(text):
     chars = sorted(list(set(text)))
     vocab_size = len(chars)
@@ -136,19 +138,44 @@ def estimate_val_loss(model, val_data, eval_iters=200):
     model.train()
     return losses.mean()
 
+def encode_text(text, stoi):
+    return [stoi[c] for c in text if c in stoi]
+
+def decode_text(ids, itos):
+    return "".join(itos[i] for i in ids)
+
+def load_cache():
+    data = torch.load(os.path.join(CACHE_DIR, "data.pt"), map_location=device)
+    tok = torch.load(os.path.join(CACHE_DIR, "tokenizer.pt"), map_location=device)
+    stoi, itos = tok["stoi"], tok["itos"]
+    return data["train"], data["val"], stoi, itos, tok["vocab_size"]
+
+def save_cache(train_data, val_data, stoi, itos, vocab_size):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    torch.save({"train": train_data, "val": val_data}, os.path.join(CACHE_DIR, "data.pt"))
+    torch.save({"stoi": stoi, "itos": itos, "vocab_size": vocab_size}, os.path.join(CACHE_DIR, "tokenizer.pt"))
+    print(f"Cached preprocessed data to {CACHE_DIR}/")
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 tiny_gpt.py <path_to_text_file>")
+        print("Usage: python3 tiny_gpt.py <path_to_text_file_or_directory>")
         return
     file_paths = sys.argv[1:]
-    for file_path in file_paths:
-        text = ExtractData(file_path).extract_text() + "\n"
-    encode,decode,vocab_size,stoi,itos = build_tokenizer(text)
-    print(f"Loaded {len(text)} characters, {vocab_size} unique characters.")
-    data = torch.tensor(encode(text), dtype=torch.long)
-    n = int(0.9 * len(data))
-    train_data = data[:n]
-    val_data = data[n:]
+
+    if os.path.exists(CACHE_DIR):
+        train_data, val_data, stoi, itos, vocab_size = load_cache()
+        print(f"Loaded cached data — {len(train_data) + len(val_data)} chars, {vocab_size} unique chars.")
+    else:
+        text = ""
+        for file_path in file_paths:
+            text += ExtractData(file_path).extract_text() + "\n"
+        encode,decode,vocab_size,stoi,itos = build_tokenizer(text)
+        print(f"Loaded {len(text)} characters, {vocab_size} unique characters.")
+        data = torch.tensor(encode(text), dtype=torch.long)
+        n = int(0.9 * len(data))
+        train_data = data[:n]
+        val_data = data[n:]
+        save_cache(train_data, val_data, stoi, itos, vocab_size)
     model = TinyGPT(vocab_size).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     best_val_loss = float("inf") # if not os.path.exists("tinygpt.pth") else [find out how to add pth data]
@@ -171,7 +198,7 @@ def main():
     print("\nTraining done. Generating sample text:\n")
     start = torch.zeros((1, 1), dtype=torch.long, device=device)
     generated = model.generate(start, max_new_tokens=300)
-    print(decode(generated[0].tolist()))
+    print(decode_text(generated[0].tolist(), itos))
 
 if __name__ == "__main__":
     main()
