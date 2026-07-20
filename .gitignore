@@ -1,3 +1,7 @@
 __pycache__/
 .venv/
 cache/
+tinygpt.pth
+.ruff_cache/
+.pytest_cache/
+*.pyc

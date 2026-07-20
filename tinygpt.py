@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -156,7 +157,13 @@ def save_cache(train_data, val_data, stoi, itos, vocab_size):
     torch.save({"stoi": stoi, "itos": itos, "vocab_size": vocab_size}, os.path.join(CACHE_DIR, "tokenizer.pt"))
     print(f"Cached preprocessed data to {CACHE_DIR}/")
 
+def clear_cache():
+    if os.path.exists(CACHE_DIR):
+        shutil.rmtree(CACHE_DIR)
+        print(f"Cleared cached data from {CACHE_DIR}/")
+
 def main():
+    clear_cache()
     if len(sys.argv) < 2:
         print("Usage: python3 tiny_gpt.py <path_to_text_file_or_directory>")
         return
